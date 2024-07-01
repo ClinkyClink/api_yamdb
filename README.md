@@ -16,16 +16,16 @@ git clone https://github.com/ClinkyClink/api_yamdb.git
 cd api_yamdb
 ```
 
-### Cоздать виртуальное окружение:
+### Cоздать и активировать виртуальное окружение:
 
 ```
+# Command for Windows:
 python -m venv venv
-```
+source venv/Scripts/activate
 
-### Активировать виртуальное окружение:
-
-```
-source venv/scripts/activate
+# Command for Linux:
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 ### Обновить пакетный менеджер pip:
