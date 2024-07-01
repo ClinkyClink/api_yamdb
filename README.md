@@ -2,8 +2,8 @@
 api_yamdb
 
 ## Авторы:
-•[Евгений](https://github.com/ClinkyClink)
+• [Евгений](https://github.com/ClinkyClink)
 
-•[Дмитрий](https://github.com/IvanBobrov1)
+• [Дмитрий](https://github.com/KuksinDm)
 
-•[Иван](https://github.com/KuksinDm)
+• [Иван](https://github.com/IvanBobrov1)
