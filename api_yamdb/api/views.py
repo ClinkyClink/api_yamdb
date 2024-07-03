@@ -6,27 +6,39 @@ from rest_framework.pagination import LimitOffsetPagination
 from reviews.models import Title, Genre, Category
 
 from .permissions import IsAuthorOrAdminOrModerator
-from .serializers import ReviewSerializer, CategorySerializer, GenreSerializer, TitleSerializer
+from .serializers import ReviewSerializer, CategorySerializer, GenreSerializer, TitleReadSerializer, TitleCreateSerializer
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
-    serializer_class = TitleSerializer
+    pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
-    filter_backends = (filters.SearchFilter)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('category__slug', 'genre__slug', 'name', 'year')
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleReadSerializer
+        return TitleCreateSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
