@@ -1,11 +1,32 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from rest_framework.pagination import LimitOffsetPagination
 
-from reviews.models import Title
+from reviews.models import Title, Genre, Category
 
 from .permissions import IsAuthorOrAdminOrModerator
-from .serializers import ReviewSerializer
+from .serializers import ReviewSerializer, CategorySerializer, GenreSerializer, TitleSerializer
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthorOrAdminOrModerator]
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = [IsAuthorOrAdminOrModerator]
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')).order_by('rating')
+    serializer_class = TitleSerializer
+    permission_classes = [IsAuthorOrAdminOrModerator]
+    filter_backends = (filters.SearchFilter)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
