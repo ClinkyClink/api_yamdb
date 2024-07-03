@@ -3,9 +3,8 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils import timezone
 
-from .validators import characters_validator
+from .validators import characters_validator, validate_year
 
 User = get_user_model()
 
@@ -35,7 +34,7 @@ class Genre(models.Model):
     """Модель для жанров."""
     name = models.CharField(
         max_length=256,
-        verbose_name='Название',
+        verbose_name='Название жанра',
     )
     slug = models.SlugField(
         max_length=50,
@@ -60,12 +59,11 @@ class Title(models.Model):
     )
     year = models.IntegerField(
         verbose_name='Год выпуска',
-        validators=[MaxValueValidator(timezone.now().year)],
-        error_messages={'validators': 'Год не может быть больше текущего'}
+        validators=[validate_year]
     )
     description = models.TextField(
         blank=True,
-        null=True,
+        default='',
         verbose_name='Описание'
     )
     genre = models.ManyToManyField(
