@@ -7,9 +7,7 @@ class CustomUser(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=True,
-        blank=True,
-        null=True,
-        help_text='Не является обязательным, но не может быть пустым.',
+        help_text='Обязательное поле, не может быть пустым.',
         validators=[
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
@@ -22,11 +20,11 @@ class CustomUser(AbstractUser):
             'unique': "Пользователь с таким именем уже существует.",
         },
     )
+
     email = models.EmailField(
         max_length=254,
-        blank=True,
-        null=True,
-        help_text='Не является обязательным, но не может быть пустым.'
+        unique=True,
+        help_text='Обязательное поле, не может быть пустым.'
     )
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
@@ -41,7 +39,7 @@ class CustomUser(AbstractUser):
     ]
     role = models.CharField(
         verbose_name='Роль',
-        max_length=10,
+        max_length=15,
         choices=ROLE_CHOICES,
         default=USER,
         help_text=(
@@ -49,6 +47,14 @@ class CustomUser(AbstractUser):
             ' По умолчанию Пользователь.'
         )
     )
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(fields=('username', 'email'),
+                                    name='unique_user'),)
+
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
     def save(self, *args, **kwargs):
         if not self.username and not self.email:
