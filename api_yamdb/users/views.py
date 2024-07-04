@@ -1,14 +1,15 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from rest_framework.mixins import ListModelMixin, CreateModelMixin
 
 from .serializers import UserSerializer, SignupSerializer, TokenSerializer
-
+from .permissions import IsAdmin, IsAdminOrReadOnly
 User = get_user_model()
 
 
@@ -31,7 +32,7 @@ class SignupView(APIView):
                         and existing_user.username == username):
                     token = RefreshToken.for_user(existing_user)
                     return Response(
-                        {'token': str(token)},
+                        {'token': str(token.access_token)},
                         status=status.HTTP_200_OK
                     )
                 elif existing_user.email == email:
@@ -73,31 +74,37 @@ class TokenView(APIView):
                 )
             except User.DoesNotExist:
                 return Response(
-                    {'username': 'Пользователь не найден'},
+                    {'username': 'User not found'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-
-            confirmation_code = serializer.validated_data['confirmation_code']
-            if default_token_generator.check_token(user, confirmation_code):
+            if default_token_generator.check_token(
+                user,
+                serializer.validated_data['confirmation_code']
+            ):
+                refresh = RefreshToken.for_user(user)
                 return Response(
-                    {'token': 'Ваше сообщение с токеном здесь'},
+                    {'token': str(refresh.access_token)},
                     status=status.HTTP_200_OK
                 )
             return Response(
-                {'confirmation_code': 'Неверный код подтверждения'},
+                {'confirmation_code': 'Invalid confirmation code'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ListModelMixin, CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
         if self.action == 'create':
-            self.permission_classes = [IsAdminUser]
+            self.permission_classes = [IsAdmin]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            self.permission_classes = [IsAdminOrReadOnly]
+        else:
+            self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
