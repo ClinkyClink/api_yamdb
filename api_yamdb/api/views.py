@@ -8,7 +8,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from reviews.models import Title, Genre, Category, Review
 from .mixins import ListCreateDestroyViewSet
 from .filter import TitleFilter
-from .permissions import IsAuthorOrAdminOrModerator
+from .permissions import IsAuthorOrAdminOrModerator, IsAdminOrReadOnly
 from .serializers import (
     ReviewSerializer, CategorySerializer, GenreSerializer,
     TitleReadSerializer, TitleCreateSerializer, CommentSerializer
@@ -19,21 +19,21 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [IsAuthorOrAdminOrModerator]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [IsAuthorOrAdminOrModerator]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')).order_by('rating')
     pagination_class = LimitOffsetPagination
-    permission_classes = [IsAuthorOrAdminOrModerator]
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
     http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
