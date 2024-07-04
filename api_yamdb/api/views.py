@@ -48,6 +48,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = (IsAuthorOrAdminOrModerator,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_queryset(self):
         title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
