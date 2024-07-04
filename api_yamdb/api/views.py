@@ -63,10 +63,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = (IsAuthorOrAdminOrModerator,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_queryset(self):
         review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
-        return review.reviews.all()
+        return review.comments_review.all()
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
