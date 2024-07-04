@@ -59,7 +59,7 @@ class CustomUser(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.username and not self.email:
             raise ValueError(
-                "Должно быть установлено либо имя пользователя, либо email."
+                'Должно быть установлено имя пользователя и email.'
             )
         super().save(*args, **kwargs)
 
