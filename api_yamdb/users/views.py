@@ -6,7 +6,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from rest_framework.mixins import ListModelMixin, CreateModelMixin
 
 from .serializers import UserSerializer, SignupSerializer, TokenSerializer
 from .permissions import IsAdmin, IsAdminOrReadOnly
@@ -93,10 +92,11 @@ class TokenView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserViewSet(ListModelMixin, CreateModelMixin, viewsets.GenericViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'username'
 
     def get_permissions(self):
         if self.action == 'create':
