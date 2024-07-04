@@ -2,7 +2,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import ReviewViewSet
+from .views import ReviewViewSet, TitleViewSet, GenreViewSet, CategoryViewSet, CommentViewSet
 from users.views import SignupView, TokenView, UserViewSet
 
 app_name = 'api'
@@ -14,6 +14,14 @@ router_v1.register(
     ReviewViewSet,
     basename='review'
 )
+router_v1.register(
+    r'^titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
+    CommentViewSet,
+    basename='comments'
+)
+router_v1.register('categories', CategoryViewSet, basename='category')
+router_v1.register('genres', GenreViewSet, basename='genre')
+router_v1.register('titles', TitleViewSet, basename='title')
 
 urlpatterns = [
     path('v1/auth/signup/', SignupView.as_view(), name='signup'),
