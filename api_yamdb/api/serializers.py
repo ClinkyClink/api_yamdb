@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 
-from reviews.models import Review, Title, Genre, Category
+from reviews.models import Review, Title, Genre, Category, Comment
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -60,8 +60,6 @@ class TitleCreateSerializer(serializers.ModelSerializer):
             'genre',
         )
 
-
-
 class ReviewSerializer(serializers.ModelSerializer):
     """Сериализация отзывов к публикациям."""
 
@@ -87,3 +85,15 @@ class ReviewSerializer(serializers.ModelSerializer):
                     'один отзыв на произведение'
                 )
         return data
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Сериализация комментариев к отзывам."""
+
+    author = serializers.SlugRelatedField(
+        slug_field='username', read_only=True,
+    )
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date',)
