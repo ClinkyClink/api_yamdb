@@ -6,6 +6,7 @@ from rest_framework import viewsets, filters
 from rest_framework.pagination import LimitOffsetPagination
 
 from reviews.models import Title, Genre, Category, Review
+from .mixins import ListCreateDestroyViewSet
 from .filter import TitleFilter
 from .permissions import IsAuthorOrAdminOrModerator
 from .serializers import (
@@ -14,22 +15,18 @@ from .serializers import (
 )
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
