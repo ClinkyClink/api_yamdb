@@ -1,5 +1,6 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import viewsets, filters
 from rest_framework.pagination import LimitOffsetPagination
@@ -35,8 +36,9 @@ class TitleViewSet(viewsets.ModelViewSet):
         rating=Avg('reviews__score')).order_by('rating')
     pagination_class = LimitOffsetPagination
     permission_classes = [IsAuthorOrAdminOrModerator]
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend,)
     search_fields = ('category__slug', 'genre__slug', 'name', 'year')
+    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
