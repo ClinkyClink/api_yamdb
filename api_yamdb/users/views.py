@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
 
 from .serializers import UserSerializer, SignupSerializer, TokenSerializer
-from .permissions import IsAdmin, IsAdminOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdminOrReadOnly, IsOwnerOrAdmin
 User = get_user_model()
 
 
@@ -94,9 +94,9 @@ class TokenView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.order_by('id')
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdmin]
     lookup_field = 'username'
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
@@ -106,7 +106,9 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             self.permission_classes = [IsAdmin]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdminOrReadOnly]
+            self.permission_classes = [IsAdmin]
+        elif self.action in ['retrieve']:
+            self.permission_classes = [IsAdmin]
         else:
             self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
@@ -118,7 +120,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get', 'patch', 'delete'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsOwnerOrAdmin])
     def me(self, request):
         if request.method == 'GET':
             serializer = self.get_serializer(request.user)
@@ -130,6 +132,3 @@ class UserViewSet(viewsets.ModelViewSet):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        elif request.method == 'DELETE':
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
