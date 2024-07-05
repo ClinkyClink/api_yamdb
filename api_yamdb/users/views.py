@@ -1,16 +1,18 @@
-from rest_framework import viewsets, status, filters
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
-from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import action
 
-from .serializers import UserSerializer, SignupSerializer, TokenSerializer
 from .permissions import IsAdmin, IsOwnerOrAdmin
+from .serializers import SignupSerializer, TokenSerializer, UserSerializer
+
 User = get_user_model()
 
 
@@ -105,23 +107,29 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def check_email_unique(self, email):
         if User.objects.filter(email=email).exists():
-            raise ValidationError("Этот адрес электронной почты уже используется")
+            raise ValidationError(
+                'Этот адрес электронной почты уже используется'
+            )
 
     def check_username_unique(self, username):
         if User.objects.filter(username=username).exists():
-            raise ValidationError("Это имя пользователя уже используется")
+            raise ValidationError('Это имя пользователя уже используется')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             try:
-                self.check_username_unique(serializer.validated_data['username'])
+                self.check_username_unique(
+                    serializer.validated_data['username']
+                )
             except ValidationError as error:
-                return Response({'username': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'username': str(error)},
+                                status=status.HTTP_400_BAD_REQUEST)
             try:
                 self.check_email_unique(serializer.validated_data['email'])
             except ValidationError as error:
-                return Response({'email': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'email': str(error)},
+                                status=status.HTTP_400_BAD_REQUEST)
             if 'role' not in serializer.validated_data:
                 serializer.validated_data['role'] = User.USER
             serializer.save()
