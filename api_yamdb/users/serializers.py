@@ -28,14 +28,14 @@ class UserSerializer(serializers.ModelSerializer):
         error_messages={
             'max_length': 'Имя не должно быть длиннее 150 символов.'
         },
-        allow_blank=True
+        required=False
     )
     last_name = serializers.CharField(
         max_length=150,
         error_messages={
             'max_length': 'Фамилия не должна быть длиннее 150 символов.'
         },
-        allow_blank=True
+        required=False
     )
 
     class Meta:
@@ -51,7 +51,7 @@ class UserSerializer(serializers.ModelSerializer):
     read_only_fields = ('role',)
 
     def update(self, instance, validated_data):
-        validated_data.pop('role', None) 
+        validated_data.pop('role', None)
         return super().update(instance, validated_data)
 
 
