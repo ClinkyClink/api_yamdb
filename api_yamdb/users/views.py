@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -6,9 +6,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from rest_framework.decorators import action
 
 from .serializers import UserSerializer, SignupSerializer, TokenSerializer
-from .permissions import IsAdmin, IsAdminOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdminOrReadOnly, IsOwnerOrAdmin
 User = get_user_model()
 
 
@@ -93,23 +94,38 @@ class TokenView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.order_by('id')
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdmin]
     lookup_field = 'username'
-
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = [IsAdmin]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdminOrReadOnly]
-        else:
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
-
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
+    
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            if 'role' not in serializer.validated_data:
+                serializer.validated_data['role'] = User.USER
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class UserMeViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    
+    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsOwnerOrAdmin])
+    def me(self, request):
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        elif request.method == 'PATCH':
+            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

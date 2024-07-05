@@ -48,6 +48,11 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
+    read_only_fields = ('role',)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('role', None) 
+        return super().update(instance, validated_data)
 
 
 class SignupSerializer(serializers.Serializer):
