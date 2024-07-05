@@ -51,7 +51,7 @@ class UserSerializer(serializers.ModelSerializer):
     read_only_fields = ('role',)
 
     def update(self, instance, validated_data):
-        validated_data.pop('role', None) 
+        validated_data.pop('role', None)
         return super().update(instance, validated_data)
 
 
