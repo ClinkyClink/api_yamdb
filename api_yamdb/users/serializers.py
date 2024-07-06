@@ -1,5 +1,6 @@
+from django.core.validators import MaxLengthValidator, RegexValidator
+
 from rest_framework import serializers
-from django.core.validators import RegexValidator, MaxLengthValidator
 
 from .models import CustomUser
 
@@ -28,14 +29,14 @@ class UserSerializer(serializers.ModelSerializer):
         error_messages={
             'max_length': 'Имя не должно быть длиннее 150 символов.'
         },
-        allow_blank=True
+        required=False
     )
     last_name = serializers.CharField(
         max_length=150,
         error_messages={
             'max_length': 'Фамилия не должна быть длиннее 150 символов.'
         },
-        allow_blank=True
+        required=False
     )
 
     class Meta:
@@ -48,6 +49,11 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
+    read_only_fields = ('role',)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('role', None)
+        return super().update(instance, validated_data)
 
 
 class SignupSerializer(serializers.Serializer):
