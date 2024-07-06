@@ -60,6 +60,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
             'genre',
         )
 
+
 class ReviewSerializer(serializers.ModelSerializer):
     """Сериализация отзывов к публикациям."""
 
