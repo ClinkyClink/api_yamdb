@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from .validators import characters_validator, validate_year
+from .constants import MAX_LENGHT, SLUG_LENGHT
 
 User = get_user_model()
 
@@ -12,11 +13,11 @@ User = get_user_model()
 class Category(models.Model):
     """Модель для категорий."""
     name = models.CharField(
-        max_length=256,
+        max_length=MAX_LENGHT,
         verbose_name='Название',
     )
     slug = models.SlugField(
-        max_length=50,
+        max_length=SLUG_LENGHT,
         unique=True,
         verbose_name='Слаг',
         validators=[characters_validator]
@@ -33,11 +34,11 @@ class Category(models.Model):
 class Genre(models.Model):
     """Модель для жанров."""
     name = models.CharField(
-        max_length=256,
+        max_length=MAX_LENGHT,
         verbose_name='Название жанра',
     )
     slug = models.SlugField(
-        max_length=50,
+        max_length=SLUG_LENGHT,
         unique=True,
         verbose_name='Слаг',
         validators=[characters_validator]
@@ -54,10 +55,10 @@ class Genre(models.Model):
 class Title(models.Model):
     """Модель описывающая публикации."""
     name = models.CharField(
-        max_length=256,
+        max_length=MAX_LENGHT,
         verbose_name='Название'
     )
-    year = models.IntegerField(
+    year = models.PositiveSmallIntegerField(
         verbose_name='Год выпуска',
         validators=[validate_year]
     )
