@@ -1,13 +1,13 @@
 import csv
 import os
 
-from tqdm import tqdm
-
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError
 
-from reviews.models import Category, Comment, Genre, TitleGenre, Review, Title
+from tqdm import tqdm
+
+from reviews.models import Category, Comment, Genre, Review, Title, TitleGenre
 from users.models import CustomUser
 
 
