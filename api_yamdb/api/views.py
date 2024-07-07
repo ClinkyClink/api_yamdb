@@ -4,8 +4,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
-
 from reviews.models import Category, Genre, Review, Title
+
 from .filter import TitleFilter
 from .mixins import ListCreateDestroyViewSet
 from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrModerator
@@ -35,7 +35,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
-    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
