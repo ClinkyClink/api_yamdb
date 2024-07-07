@@ -23,20 +23,6 @@ class UserSerializer(serializers.ModelSerializer):
                 150, message='Username не должен быть длиннее 150 символов.')
         ]
     )
-    first_name = serializers.CharField(
-        max_length=150,
-        error_messages={
-            'max_length': 'Имя не должно быть длиннее 150 символов.'
-        },
-        required=False
-    )
-    last_name = serializers.CharField(
-        max_length=150,
-        error_messages={
-            'max_length': 'Фамилия не должна быть длиннее 150 символов.'
-        },
-        required=False
-    )
 
     class Meta:
         model = CustomUser
