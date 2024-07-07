@@ -1,5 +1,6 @@
+from django.core.validators import MaxLengthValidator, RegexValidator
+
 from rest_framework import serializers
-from django.core.validators import RegexValidator, MaxLengthValidator
 
 from .models import CustomUser
 
