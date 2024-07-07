@@ -18,29 +18,7 @@ from .serializers import SignupSerializer, TokenSerializer, UserSerializer
 User = get_user_model()
 
 
-class EmailTokenMixin:
-    def send_token_email(self, user, token_type='confirmation'):
-        if token_type == 'confirmation':
-            subject = 'Ваш код подтверждения'
-            message = (
-                f'Ваш код подтверждения: '
-                f'{default_token_generator.make_token(user)}'
-            )
-        elif token_type == 'new_confirmation':
-            subject = 'Ваш новый код подтверждения'
-            message = (
-                f'Ваш новый код подтверждения: '
-                f'{default_token_generator.make_token(user)}'
-            )
-        send_mail(
-            subject,
-            message,
-            settings.FROM_EMAIL_ADDRESS,
-            [user.email],
-        )
-
-
-class SignupView(EmailTokenMixin, APIView):
+class SignupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -48,7 +26,6 @@ class SignupView(EmailTokenMixin, APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             username = serializer.validated_data['username']
-
             existing_user = (
                 User.objects.filter(email=email).first()
                 or User.objects.filter(username=username).first()
@@ -57,14 +34,23 @@ class SignupView(EmailTokenMixin, APIView):
             if existing_user:
                 if (existing_user.email == email
                         and existing_user.username == username):
-                    token = RefreshToken.for_user(existing_user)
+                    confirmation_code = default_token_generator.make_token(
+                        existing_user)
+                    send_mail(
+                        'Ваш код подтверждения',
+                        f'Ваш код подтверждения: {confirmation_code}',
+                        settings.FROM_EMAIL_ADDRESS,
+                        [existing_user.email],
+                    )
+
                     return Response(
-                        {'token': str(token.access_token)},
+                        {'email': existing_user.email,
+                         'username': existing_user.username},
                         status=status.HTTP_200_OK
                     )
                 elif existing_user.email == email:
                     return Response(
-                        {'error': 'Email уже существует'},
+                        {'error': 'Email уже зарегистрирован'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 elif existing_user.username == username:
@@ -72,18 +58,25 @@ class SignupView(EmailTokenMixin, APIView):
                         {'error': 'Имя пользователя уже занято'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+            else:
+                user = User.objects.create(email=email, username=username)
+                confirmation_code = default_token_generator.make_token(user)
+                send_mail(
+                    'Ваш код подтверждения',
+                    f'Ваш код подтверждения: {confirmation_code}',
+                    settings.FROM_EMAIL_ADDRESS,
+                    [user.email],
+                )
 
-            user = User.objects.create(email=email, username=username)
-            self.send_token_email(user)
-            return Response(
-                {'email': user.email, 'username': user.username},
-                status=status.HTTP_200_OK
-            )
+                return Response(
+                    {'email': user.email, 'username': user.username},
+                    status=status.HTTP_200_OK
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TokenView(EmailTokenMixin, APIView):
+class TokenView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -108,7 +101,13 @@ class TokenView(EmailTokenMixin, APIView):
                     {'token': str(refresh.access_token)},
                     status=status.HTTP_200_OK
                 )
-            self.send_token_email(user, token_type='new_confirmation')
+            new_confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Ваш новый код подтверждения',
+                f'Ваш новый код подтверждения: {new_confirmation_code}',
+                settings.FROM_EMAIL_ADDRESS,
+                [user.email],
+            )
             return Response(
                 {'confirmation_code': 'Неверный код подтверждения. '
                  'Новый код отправлен.'},

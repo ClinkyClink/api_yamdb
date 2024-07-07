@@ -19,5 +19,5 @@ def validate_year(value):
 
 def validate_username(value):
     if value.lower() == 'me':
-        raise ValidationError("Имя пользователя 'me' недопустимо.")
+        raise ValidationError('Имя пользователя "me" недопустимо.')
     return value
