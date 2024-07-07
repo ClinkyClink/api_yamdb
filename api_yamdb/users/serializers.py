@@ -1,3 +1,5 @@
+from django.core.validators import MaxLengthValidator, RegexValidator
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
