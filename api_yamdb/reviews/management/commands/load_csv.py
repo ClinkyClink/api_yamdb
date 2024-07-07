@@ -28,12 +28,13 @@ class Command(BaseCommand):
                     model.objects.get_or_create(**row)
                 except IntegrityError as error:
                     print(f'Произошла ошибка: {error}')
-                
+
     def add_arguments(self, parser):
         parser.add_argument(
             'data_type',
             nargs='?',
-            choices=['category', 'genre', 'titles', 'users', 'review', 'comments', 'genre_title'],
+            choices=['category', 'genre', 'titles', 'users',
+                     'review', 'comments', 'genre_title'],
         )
 
     def handle(self, *args, **options):
@@ -44,24 +45,37 @@ class Command(BaseCommand):
             elif data_type == 'genre':
                 self.add_from_csv(Genre, 'genre.csv')
             elif data_type == 'titles':
-                self.add_from_csv(Title, 'titles.csv', related_fields={'category': Category})
+                self.add_from_csv(Title, 'titles.csv',
+                                  related_fields={'category': Category})
             elif data_type == 'users':
                 self.add_from_csv(CustomUser, 'users.csv')
             elif data_type == 'review':
-                self.add_from_csv(Review, 'review.csv', related_fields={'title': Title, 'author': CustomUser})
+                self.add_from_csv(Review, 'review.csv',
+                                  related_fields={'title': Title,
+                                                  'author': CustomUser})
             elif data_type == 'comments':
-                self.add_from_csv(Comment, 'comments.csv', related_fields={'review': Review, 'author': CustomUser})
+                self.add_from_csv(Comment, 'comments.csv',
+                                  related_fields={'review': Review,
+                                                  'author': CustomUser})
             elif data_type == 'genre_title':
-                self.add_from_csv(TitleGenre, 'genre_title.csv', related_fields={'title': Title, 'genre': Genre})
+                self.add_from_csv(TitleGenre, 'genre_title.csv',
+                                  related_fields={'title': Title,
+                                                  'genre': Genre})
             else:
                 self.add_from_csv(Category, 'category.csv')
                 self.add_from_csv(Genre, 'genre.csv')
-                self.add_from_csv(Title, 'titles.csv', related_fields={'category': Category})
+                self.add_from_csv(Title, 'titles.csv',
+                                         related_fields={'category': Category})
                 self.add_from_csv(CustomUser, 'users.csv')
-                self.add_from_csv(Review, 'review.csv', related_fields={'title': Title, 'author': CustomUser})
-                self.add_from_csv(Comment, 'comments.csv', related_fields={'review': Review, 'author': CustomUser})
-                self.add_from_csv(TitleGenre, 'genre_title.csv', related_fields={'title': Title, 'genre': Genre})
+                self.add_from_csv(Review, 'review.csv',
+                                          related_fields={'title': Title,
+                                                          'author': CustomUser})
+                self.add_from_csv(Comment, 'comments.csv',
+                                           related_fields={'review': Review,
+                                                           'author': CustomUser})
+                self.add_from_csv(TitleGenre, 'genre_title.csv',
+                                  related_fields={'title': Title,
+                                                  'genre': Genre})
             self.stdout.write(self.style.SUCCESS('Загрузка данных завершена'))
         except Exception as error:
             self.stdout.write(self.style.ERROR(f'Произошла ошибка: {error}'))
-
