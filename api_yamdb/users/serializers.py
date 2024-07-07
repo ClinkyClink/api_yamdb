@@ -1,42 +1,31 @@
 from django.core.validators import MaxLengthValidator, RegexValidator
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .models import CustomUser
+from reviews.validators import characters_validator, validate_username
+from reviews.constants import (
+    MAX_USER_LENGHT,
+    MAX_EMAIL_LENGHT,
+    MAX_CODE_LENGHT
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
-        max_length=254,
+        max_length=MAX_EMAIL_LENGHT,
+        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         error_messages={
             'max_length': 'Email не должен быть длиннее 254 символов.'
         }
     )
     username = serializers.CharField(
-        max_length=150,
+        max_length=MAX_USER_LENGHT,
         validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message=('Username может содержать только буквы,'
-                         ' числа, и @/./+/-/_ символы.')
-            ),
-            MaxLengthValidator(
-                150, message='Username не должен быть длиннее 150 символов.')
+            characters_validator,
+            UniqueValidator(queryset=CustomUser.objects.all())
         ]
-    )
-    first_name = serializers.CharField(
-        max_length=150,
-        error_messages={
-            'max_length': 'Имя не должно быть длиннее 150 символов.'
-        },
-        required=False
-    )
-    last_name = serializers.CharField(
-        max_length=150,
-        error_messages={
-            'max_length': 'Фамилия не должна быть длиннее 150 символов.'
-        },
-        required=False
     )
 
     class Meta:
@@ -57,33 +46,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254)
+    email = serializers.EmailField(max_length=MAX_EMAIL_LENGHT)
     username = serializers.CharField(
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message=('Username может содержать только буквы,'
-                         ' числа, и @/./+/-/_ символы.')
-            )
-        ]
+        max_length=MAX_USER_LENGHT,
+        validators=[characters_validator, validate_username]
     )
-
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError("Username 'me' is not allowed.")
-        return value
 
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message=('Username может содержать только буквы,'
-                         ' числа, и @/./+/-/_ символы.')
-            )
-        ]
+        max_length=MAX_USER_LENGHT,
+        validators=[characters_validator]
     )
-    confirmation_code = serializers.CharField(max_length=50)
+    confirmation_code = serializers.CharField(max_length=MAX_CODE_LENGHT)

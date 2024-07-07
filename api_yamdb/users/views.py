@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
+from django.conf import settings
 
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -12,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .permissions import IsAdmin, IsOwnerOrAdmin
 from .serializers import SignupSerializer, TokenSerializer, UserSerializer
+
 
 User = get_user_model()
 
@@ -24,7 +27,6 @@ class SignupView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             username = serializer.validated_data['username']
-
             existing_user = (
                 User.objects.filter(email=email).first()
                 or User.objects.filter(username=username).first()
@@ -33,14 +35,23 @@ class SignupView(APIView):
             if existing_user:
                 if (existing_user.email == email
                         and existing_user.username == username):
-                    token = RefreshToken.for_user(existing_user)
+                    confirmation_code = default_token_generator.make_token(
+                        existing_user)
+                    send_mail(
+                        'Ваш код подтверждения',
+                        f'Ваш код подтверждения: {confirmation_code}',
+                        settings.FROM_EMAIL_ADDRESS,
+                        [existing_user.email],
+                    )
+
                     return Response(
-                        {'token': str(token.access_token)},
+                        {'email': existing_user.email,
+                         'username': existing_user.username},
                         status=status.HTTP_200_OK
                     )
                 elif existing_user.email == email:
                     return Response(
-                        {'error': 'Email уже существует'},
+                        {'error': 'Email уже зарегистрирован'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 elif existing_user.username == username:
@@ -48,19 +59,20 @@ class SignupView(APIView):
                         {'error': 'Имя пользователя уже занято'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+            else:
+                user = User.objects.create(email=email, username=username)
+                confirmation_code = default_token_generator.make_token(user)
+                send_mail(
+                    'Ваш код подтверждения',
+                    f'Ваш код подтверждения: {confirmation_code}',
+                    settings.FROM_EMAIL_ADDRESS,
+                    [user.email],
+                )
 
-            user = User.objects.create(email=email, username=username)
-            confirmation_code = default_token_generator.make_token(user)
-            send_mail(
-                'Ваш код подтверждения',
-                f'Ваш код подтверждения: {confirmation_code}',
-                'from@example.com',
-                [user.email],
-            )
-            return Response(
-                {'email': user.email, 'username': user.username},
-                status=status.HTTP_200_OK
-            )
+                return Response(
+                    {'email': user.email, 'username': user.username},
+                    status=status.HTTP_200_OK
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -72,12 +84,13 @@ class TokenView(APIView):
         serializer = TokenSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                user = User.objects.get(
+                user = get_object_or_404(
+                    User,
                     username=serializer.validated_data['username']
                 )
             except User.DoesNotExist:
                 return Response(
-                    {'username': 'User not found'},
+                    {'username': 'Имя пользователя не найдено'},
                     status=status.HTTP_404_NOT_FOUND
                 )
             if default_token_generator.check_token(
@@ -89,8 +102,16 @@ class TokenView(APIView):
                     {'token': str(refresh.access_token)},
                     status=status.HTTP_200_OK
                 )
+            new_confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Ваш новый код подтверждения',
+                f'Ваш новый код подтверждения: {new_confirmation_code}',
+                settings.FROM_EMAIL_ADDRESS,
+                [user.email],
+            )
             return Response(
-                {'confirmation_code': 'Invalid confirmation code'},
+                {'confirmation_code': 'Неверный код подтверждения. '
+                 'Новый код отправлен.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

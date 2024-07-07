@@ -1,33 +1,39 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
 from django.db import models
+
+from reviews.validators import characters_validator, validate_username
+from reviews.constants import (
+    MAX_USER_LENGHT,
+    MAX_EMAIL_LENGHT,
+    MAX_ROLE_LENGHT
+)
 
 
 class CustomUser(AbstractUser):
     username = models.CharField(
-        max_length=150,
+        max_length=MAX_USER_LENGHT,
         unique=True,
         help_text='Обязательное поле, не может быть пустым.',
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message=('Имя пользователя должно состоять из букв,'
-                         ' цифр и символов: @/./+/-/_'),
-                code='invalid_username'
-            ),
-        ],
+        validators=[characters_validator, validate_username],
         error_messages={
-            'unique': "Пользователь с таким именем уже существует.",
+            'unique': 'Пользователь с таким именем уже существует.',
         },
     )
-
     email = models.EmailField(
-        max_length=254,
+        max_length=MAX_EMAIL_LENGHT,
         unique=True,
         help_text='Обязательное поле, не может быть пустым.'
     )
-    first_name = models.CharField('Имя', max_length=150, blank=True)
-    last_name = models.CharField('Фамилия', max_length=150, blank=True)
+    first_name = models.CharField(
+        'Имя',
+        max_length=MAX_USER_LENGHT,
+        blank=True
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=MAX_USER_LENGHT,
+        blank=True
+    )
     bio = models.TextField('Биография', blank=True, null=True)
     USER = 'user'
     MODERATOR = 'moderator'
@@ -39,7 +45,7 @@ class CustomUser(AbstractUser):
     ]
     role = models.CharField(
         verbose_name='Роль',
-        max_length=15,
+        max_length=MAX_ROLE_LENGHT,
         choices=ROLE_CHOICES,
         default=USER,
         help_text=(
@@ -49,9 +55,6 @@ class CustomUser(AbstractUser):
     )
 
     class Meta:
-        constraints = (
-            models.UniqueConstraint(fields=('username', 'email'),
-                                    name='unique_user'),)
 
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
