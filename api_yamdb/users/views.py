@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -126,9 +127,31 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username']
     http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
 
+    def check_email_unique(self, email):
+        if User.objects.filter(email=email).exists():
+            raise ValidationError(
+                'Этот адрес электронной почты уже используется'
+            )
+
+    def check_username_unique(self, username):
+        if User.objects.filter(username=username).exists():
+            raise ValidationError('Это имя пользователя уже используется')
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            try:
+                self.check_username_unique(
+                    serializer.validated_data['username']
+                )
+            except ValidationError as error:
+                return Response({'username': str(error)},
+                                status=status.HTTP_400_BAD_REQUEST)
+            try:
+                self.check_email_unique(serializer.validated_data['email'])
+            except ValidationError as error:
+                return Response({'email': str(error)},
+                                status=status.HTTP_400_BAD_REQUEST)
             if 'role' not in serializer.validated_data:
                 serializer.validated_data['role'] = User.USER
             serializer.save()
