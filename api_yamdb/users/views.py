@@ -25,54 +25,33 @@ class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-            username = serializer.validated_data['username']
-            existing_user = (
-                User.objects.filter(email=email).first()
-                or User.objects.filter(username=username).first()
-            )
-
-            if existing_user:
-                if (existing_user.email == email
-                        and existing_user.username == username):
-                    confirmation_code = default_token_generator.make_token(
-                        existing_user)
-                    send_mail(
-                        'Ваш код подтверждения',
-                        f'Ваш код подтверждения: {confirmation_code}',
-                        settings.FROM_EMAIL_ADDRESS,
-                        [existing_user.email],
-                    )
-
-                    return Response(
-                        {'email': existing_user.email,
-                         'username': existing_user.username},
-                        status=status.HTTP_200_OK
-                    )
-                elif existing_user.email == email:
-                    return Response(
-                        {'error': 'Email уже зарегистрирован'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                elif existing_user.username == username:
-                    return Response(
-                        {'error': 'Имя пользователя уже занято'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            else:
-                user = User.objects.create(email=email, username=username)
-                confirmation_code = default_token_generator.make_token(user)
+            if hasattr(serializer, 'existing_user'):
+                existing_user = serializer.existing_user
+                confirmation_code = default_token_generator.make_token(
+                    existing_user)
                 send_mail(
                     'Ваш код подтверждения',
                     f'Ваш код подтверждения: {confirmation_code}',
                     settings.FROM_EMAIL_ADDRESS,
-                    [user.email],
+                    [existing_user.email],
                 )
-
                 return Response(
-                    {'email': user.email, 'username': user.username},
+                    {'email': existing_user.email,
+                     'username': existing_user.username},
                     status=status.HTTP_200_OK
                 )
+            user = serializer.save()
+            confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Ваш код подтверждения',
+                f'Ваш код подтверждения: {confirmation_code}',
+                settings.FROM_EMAIL_ADDRESS,
+                [user.email],
+            )
+            return Response(
+                {'email': user.email, 'username': user.username},
+                status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -110,8 +89,7 @@ class TokenView(APIView):
                 [user.email],
             )
             return Response(
-                {'confirmation_code': 'Неверный код подтверждения. '
-                 'Новый код отправлен.'},
+                {'token': 'your_generated_token'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
