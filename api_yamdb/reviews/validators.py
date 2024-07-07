@@ -15,3 +15,9 @@ def validate_year(value):
         raise ValidationError(
             'Год произведения не может быть больше текущего.'
         )
+
+
+def validate_username(value):
+    if value.lower() == 'me':
+        raise ValidationError("Имя пользователя 'me' недопустимо.")
+    return value
