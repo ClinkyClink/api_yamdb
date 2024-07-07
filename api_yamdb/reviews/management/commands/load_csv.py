@@ -1,47 +1,75 @@
 import csv
 import os
+from contextlib import contextmanager
+
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError, transaction
+from django.db.transaction import atomic
 
 from tqdm import tqdm
 
-from django.conf import settings
-from django.core.management.base import BaseCommand
-from django.db import IntegrityError
-
-from reviews.models import Category, Comment, Genre, TitleGenre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title, TitleGenre
 from users.models import CustomUser
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    def add_from_csv(self, model, filename, related_fields=None):
-        related_fields = related_fields or {}
+    def add_arguments(self, parser):
+        parser.add_argument(
+            'data_type',
+            nargs='?',
+            choices=['category', 'genre', 'titles', 'users', 'review', 'comments', 'genre_title'],
+        )
+
+    @contextmanager
+    def open_csv(self, filename):
         path = os.path.join(settings.BASE_DIR, 'static/data/', filename)
         with open(path, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in tqdm(reader, desc=f'Загрузка {filename}'):
-                for field, related_model in related_fields.items():
-                    if field in row:
-                        related_instance, _ = (
-                            related_model.objects
-                            .get_or_create(id=row[field]))
-                        row[field] = related_instance
-                try:
-                    model.objects.get_or_create(**row)
-                except IntegrityError as error:
-                    print(f'Произошла ошибка: {error}')
+            yield csv.DictReader(file)
+
+    def add_from_csv(self, model, filename, related_fields=None):
+        related_fields = related_fields or {}
+        with self.open_csv(filename) as reader:
+            with transaction.atomic():
+                for row in tqdm(reader, desc=f'Загрузка {filename}'):
+                    for field, related_model in related_fields.items():
+                        if field in row:
+                            related_instance, _ = (
+                                related_model.objects
+                                .get_or_create(id=row[field]))
+                            row[field] = related_instance
+                    try:
+                        model.objects.get_or_create(**row)
+                    except IntegrityError as error:
+                        logger.error(f'Ошибка целостности: {error}')
+                        raise CommandError(f'Ошибка при импорте данных {error}')
 
     def handle(self, *args, **options):
-        self.add_from_csv(Category, 'category.csv')
-        self.add_from_csv(Genre, 'genre.csv')
-        self.add_from_csv(Title, 'titles.csv',
-                          related_fields={'category': Category})
-        self.add_from_csv(CustomUser, 'users.csv')
-        self.add_from_csv(Review, 'review.csv',
-                          related_fields={'title': Title,
-                                          'author': CustomUser})
-        self.add_from_csv(Comment, 'comments.csv',
-                          related_fields={'review': Review,
-                                          'author': CustomUser})
-        self.add_from_csv(TitleGenre, 'genre_title.csv',
-                                      related_fields={'title': Title,
-                                                      'genre': Genre})
-        self.stdout.write(self.style.SUCCESS('Все данные загружены'))
+        data_types = {
+            'category': (Category, 'category.csv', None),
+            'genre': (Genre, 'genre.csv', None),
+            'titles': (Title, 'titles.csv', {'category': Category}),
+            'users': (CustomUser, 'users.csv', None),
+            'review': (Review, 'review.csv', {'title': Title, 'author': CustomUser}),
+            'comments': (Comment, 'comments.csv', {'review': Review, 'author': CustomUser}),
+            'genre_title': (TitleGenre, 'genre_title.csv', {'title': Title, 'genre': Genre}),
+        }
+
+        data_type = options['data_type']
+        if data_type:
+            if data_type in data_types:
+                for model, filename, related_fields in data_types.values():
+                    if related_fields is None:
+                        self.add_from_csv(model, filename)
+                    else:
+                        self.add_from_csv(model, filename, related_fields)
+            else:
+                raise CommandError(f'Неизвестный тип данных: {data_type}')
+        else:
+            for model, filename, related_fields in data_types.values():
+                self.add_from_csv(model, filename, related_fields)
+
+        self.stdout.write(self.style.SUCCESS('Загрузка данных завершена'))
