@@ -124,7 +124,7 @@ class UserViewSet(viewsets.ModelViewSet):
     lookup_field = 'username'
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
-    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'patch']
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def check_email_unique(self, email):
         if User.objects.filter(email=email).exists():
