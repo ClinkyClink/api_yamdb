@@ -1,12 +1,11 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
+
+from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .models import CustomUser
 from reviews.validators import characters_validator, validate_username
-from reviews.constants import (
-    MAX_USER_LENGHT,
-    MAX_EMAIL_LENGHT,
-)
+from reviews.constants import (MAX_EMAIL_LENGHT, MAX_USER_LENGHT)
 
 
 User = get_user_model()
@@ -15,13 +14,26 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         max_length=MAX_EMAIL_LENGHT,
+        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         error_messages={
-            'max_length': 'Email не должен быть длиннее 254 символов.'
+            'max_length': 'Email не должен быть длиннее 254 символов.',
+            'unique': 'Пользователь с таким Email уже существует.'
         }
     )
     username = serializers.CharField(
         max_length=MAX_USER_LENGHT,
-        validators=[characters_validator]
+        validators=[
+            characters_validator,
+            validate_username,
+            UniqueValidator(queryset=CustomUser.objects.all())
+        ],
+        error_messages={
+            'max_length': (
+                'Имя пользователя не должно быть длиннее 150 символов.'
+            ),
+            'unique': 'Пользователь с таким именем уже существует.',
+            'invalid': 'Недопустимое имя пользователя.'
+        }
     )
 
     class Meta:
@@ -35,18 +47,6 @@ class UserSerializer(serializers.ModelSerializer):
             'role'
         )
     read_only_fields = ('role',)
-
-    def validate_username(self, value):
-        if CustomUser.objects.filter(username=value).exists():
-            raise serializers.ValidationError(
-                'Это имя пользователя уже используется')
-        return value
-
-    def validate_email(self, value):
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                'Этот адрес электронной почты уже используется')
-        return value
 
     def update(self, instance, validated_data):
         validated_data.pop('role', None)
