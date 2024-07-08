@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.utils import timezone
 
-
 characters_validator = RegexValidator(
     regex=r'^[-a-zA-Z0-9_]+$',
     message='Символы латинского алфавита, цифры и знак подчёркивания'
