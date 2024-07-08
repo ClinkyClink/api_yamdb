@@ -10,6 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .permissions import IsAdmin, IsOwnerOrAdmin
 from .serializers import SignupSerializer, TokenSerializer, UserSerializer
@@ -22,8 +23,8 @@ class SendConfirmationCodeMixin:
     def send_confirmation_code(self, user):
         confirmation_code = default_token_generator.make_token(user)
         send_mail(
-            'Ваш код подтверждения',
-            f'Ваш код подтверждения: {confirmation_code}',
+            'Сonfirmation Сode',
+            f'Confirmation_Code: {confirmation_code}',
             settings.FROM_EMAIL_ADDRESS,
             [user.email],
         )
@@ -53,32 +54,33 @@ class SignupView(APIView, SendConfirmationCodeMixin):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TokenView(APIView, SendConfirmationCodeMixin):
+class TokenView(TokenObtainPairView, SendConfirmationCodeMixin):
     permission_classes = [AllowAny]
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid():
-            user = get_object_or_404(
-                User,
-                username=serializer.validated_data['username']
-            )
-            if default_token_generator.check_token(
-                user,
-                serializer.validated_data['confirmation_code']
-            ):
-                refresh = RefreshToken.for_user(user)
-                return Response(
-                    {'token': str(refresh.access_token)},
-                    status=status.HTTP_200_OK
-                )
-            else:
-                self.send_confirmation_code(user)
-                return Response(
-                    {'token': 'Новый код отправлен на почту.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+
+        user = get_object_or_404(
+            User,
+            username=serializer.validated_data['username']
+        )
+
+        if default_token_generator.check_token(
+            user,
+            serializer.validated_data['confirmation_code']
+        ):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'access token': str(refresh.access_token),
+            })
+
+        self.send_confirmation_code(user)
+        return Response(
+            {'detail': 'Код подтверждения неверный.'
+             ' Новый код отправлен на почту.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class UserViewSet(viewsets.ModelViewSet):
