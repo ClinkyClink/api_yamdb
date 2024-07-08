@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from django.contrib.auth import get_user_model
 
 from .models import CustomUser
@@ -7,7 +6,6 @@ from reviews.validators import characters_validator, validate_username
 from reviews.constants import (
     MAX_USER_LENGHT,
     MAX_EMAIL_LENGHT,
-    MAX_CODE_LENGHT
 )
 
 
@@ -17,17 +15,13 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         max_length=MAX_EMAIL_LENGHT,
-        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         error_messages={
             'max_length': 'Email не должен быть длиннее 254 символов.'
         }
     )
     username = serializers.CharField(
         max_length=MAX_USER_LENGHT,
-        validators=[
-            characters_validator,
-            UniqueValidator(queryset=CustomUser.objects.all())
-        ]
+        validators=[characters_validator]
     )
 
     class Meta:
@@ -41,6 +35,18 @@ class UserSerializer(serializers.ModelSerializer):
             'role'
         )
     read_only_fields = ('role',)
+
+    def validate_username(self, value):
+        if CustomUser.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                'Это имя пользователя уже используется')
+        return value
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                'Этот адрес электронной почты уже используется')
+        return value
 
     def update(self, instance, validated_data):
         validated_data.pop('role', None)
@@ -89,4 +95,4 @@ class TokenSerializer(serializers.Serializer):
         max_length=MAX_USER_LENGHT,
         validators=[characters_validator]
     )
-    confirmation_code = serializers.CharField(max_length=MAX_CODE_LENGHT)
+    confirmation_code = serializers.CharField()
