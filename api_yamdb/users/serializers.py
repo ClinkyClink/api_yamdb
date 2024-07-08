@@ -1,13 +1,14 @@
+from django.contrib.auth import get_user_model
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from .models import CustomUser
 from reviews.validators import characters_validator, validate_username
-from reviews.constants import (
-    MAX_USER_LENGHT,
-    MAX_EMAIL_LENGHT,
-    MAX_CODE_LENGHT
-)
+from reviews.constants import (MAX_EMAIL_LENGHT, MAX_USER_LENGHT)
+
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -15,15 +16,24 @@ class UserSerializer(serializers.ModelSerializer):
         max_length=MAX_EMAIL_LENGHT,
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         error_messages={
-            'max_length': 'Email не должен быть длиннее 254 символов.'
+            'max_length': 'Email не должен быть длиннее 254 символов.',
+            'unique': 'Пользователь с таким Email уже существует.'
         }
     )
     username = serializers.CharField(
         max_length=MAX_USER_LENGHT,
         validators=[
             characters_validator,
+            validate_username,
             UniqueValidator(queryset=CustomUser.objects.all())
-        ]
+        ],
+        error_messages={
+            'max_length': (
+                'Имя пользователя не должно быть длиннее 150 символов.'
+            ),
+            'unique': 'Пользователь с таким именем уже существует.',
+            'invalid': 'Недопустимое имя пользователя.'
+        }
     )
 
     class Meta:
@@ -47,8 +57,37 @@ class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=MAX_EMAIL_LENGHT)
     username = serializers.CharField(
         max_length=MAX_USER_LENGHT,
-        validators=[characters_validator, validate_username]
+        validators=[validate_username, characters_validator]
     )
+
+    def validate(self, data):
+        email = data.get('email')
+        username = data.get('username')
+
+        user_with_email = User.objects.filter(email=email).first()
+        user_with_username = User.objects.filter(username=username).first()
+
+        if user_with_email and user_with_username:
+            if user_with_email == user_with_username:
+                self.existing_user = user_with_email
+            else:
+                raise serializers.ValidationError(
+                    {'email': user_with_email.email,
+                     'username': user_with_username.username}
+                )
+        elif user_with_email:
+            raise serializers.ValidationError(
+                {'email': 'Эта почта уже зарегистрирована.'}
+            )
+        elif user_with_username:
+            raise serializers.ValidationError(
+                {'username': 'Это имя пользователя уже занято.'}
+            )
+
+        return data
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
 
 
 class TokenSerializer(serializers.Serializer):
@@ -56,4 +95,4 @@ class TokenSerializer(serializers.Serializer):
         max_length=MAX_USER_LENGHT,
         validators=[characters_validator]
     )
-    confirmation_code = serializers.CharField(max_length=MAX_CODE_LENGHT)
+    confirmation_code = serializers.CharField()
