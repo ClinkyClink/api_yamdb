@@ -1,12 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from reviews.constants import (MAX_EMAIL_LENGHT, MAX_ROLE_LENGHT,
+                               MAX_USER_LENGHT)
 from reviews.validators import characters_validator, validate_username
-from reviews.constants import (
-    MAX_USER_LENGHT,
-    MAX_EMAIL_LENGHT,
-    MAX_ROLE_LENGHT
-)
 
 
 class CustomUser(AbstractUser):
