@@ -34,7 +34,7 @@ class CustomUser(AbstractUser):
         max_length=MAX_USER_LENGHT,
         blank=True
     )
-    bio = models.TextField('Биография', blank=True, null=True)
+    bio = models.TextField('Биография', blank=True, default='Биография')
     USER = 'user'
     MODERATOR = 'moderator'
     ADMIN = 'admin'

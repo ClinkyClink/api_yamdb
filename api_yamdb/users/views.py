@@ -72,7 +72,7 @@ class TokenView(TokenObtainPairView, SendConfirmationCodeMixin):
         ):
             refresh = RefreshToken.for_user(user)
             return Response({
-                'access token': str(refresh.access_token),
+                'token': str(refresh.access_token),
             })
 
         self.send_confirmation_code(user)
